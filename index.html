@@ -123,7 +123,16 @@ function migrate(d){
   (d.profiles||[]).forEach(function(p){
     delete p.winTypes;
     if(!p.hints) p.hints = [];
-    (p.symbols||[]).forEach(function(s){ if(s.showRate === undefined) s.showRate = true; });
+    var all = (p.states||[]).map(function(st){ return st.id; });
+    (p.symbols||[]).forEach(function(s){
+      if(s.showRate === undefined) s.showRate = true;
+      if(!s.scope){
+        var on = (s.states || all).filter(function(x){ return all.indexOf(x) >= 0; });
+        s.scope = (on.length === 1 && all.length > 1) ? on[0] : 'ALL';
+      }
+      if(all.indexOf(s.scope) < 0 && s.scope !== 'ALL') s.scope = 'ALL';
+      delete s.states;
+    });
   });
   return d;
 }
@@ -171,6 +180,13 @@ function totalGames(s){ return Math.max(0, (s.currentGames||0) - (s.startGames||
 function stateGames(s, stateId){
   if(stateId === 'ALL') return totalGames(s);
   return s.stateGames[stateId] || 0;
+}
+function symbolGames(s, p, sym){
+  var g = 0;
+  p.states.forEach(function(st){
+    if(st.hasGames && (sym.scope === 'ALL' || sym.scope === st.id)) g += (s.stateGames[st.id] || 0);
+  });
+  return g;
 }
 function countOf(s, symId, stateId){
   if(stateId === 'ALL'){
@@ -259,18 +275,17 @@ function viewHome(){
 }
 
 function newProfile(){
+  var normal = {id:uid(), name:'通常時', hasGames:true};
+  var at = {id:uid(), name:'AT中', hasGames:true};
   var p = {id:uid(), name:'新しい機種', note:'',
     symbols:[
-      {id:uid(), name:'弱チェリー', color:'#E8615A', showRate:true},
-      {id:uid(), name:'強チェリー', color:'#E85AA8', showRate:true},
-      {id:uid(), name:'スイカ', color:'#5BB84A', showRate:true},
-      {id:uid(), name:'ブドウ', color:'#9B6BE8', showRate:true},
-      {id:uid(), name:'チャンス目', color:'#E89A3C', showRate:true}
+      {id:uid(), name:'弱チェリー', color:'#E8615A', showRate:true, scope:'ALL'},
+      {id:uid(), name:'強チェリー', color:'#E85AA8', showRate:true, scope:'ALL'},
+      {id:uid(), name:'スイカ', color:'#5BB84A', showRate:true, scope:'ALL'},
+      {id:uid(), name:'ブドウ', color:'#9B6BE8', showRate:true, scope:'ALL'},
+      {id:uid(), name:'チャンス目', color:'#E89A3C', showRate:true, scope:'ALL'}
     ],
-    states:[
-      {id:uid(), name:'通常時', hasGames:true},
-      {id:uid(), name:'確定演出', hasGames:false}
-    ],
+    states:[normal, at],
     hints:[]
   };
   DB.profiles.push(p); save();
@@ -288,21 +303,26 @@ function viewProfile(){
     + '<div class="sec">メモ</div>'
     + '<input value="'+esc(p.note)+'" placeholder="設定推測の要点など" onchange="setProfNote(this.value)">';
 
-  h += '<div class="sec">小役 <span class="pill">タップして編集</span></div><div class="list">';
+  h += '<div class="sec">小役</div>';
   p.symbols.forEach(function(s,i){
-    h += '<div class="item">'
+    h += '<div class="card"><div style="display:flex;align-items:center;gap:8px">'
       + '<button onclick="pickColor(\''+s.id+'\')" style="width:26px;height:26px;border-radius:7px;flex:none;background:'+s.color+'" aria-label="色"></button>'
-      + '<div style="flex:1;min-width:0">'
-      + '<input style="background:none;border:none;padding:0" value="'+esc(s.name)+'" onchange="renameSym(\''+s.id+'\',this.value)">'
-      + '<label class="sw" style="margin-top:6px;color:var(--dim);font-size:12.5px">'
-      + '<input type="checkbox" '+(s.showRate!==false?'checked':'')+' onchange="toggleRate(\''+s.id+'\',this.checked)">'
-      + '確率を表示する</label></div>'
+      + '<input style="flex:1;min-width:0;background:none;border:none;padding:0;font-weight:600" value="'+esc(s.name)+'" onchange="renameSym(\''+s.id+'\',this.value)">'
       + '<button class="iconbtn" onclick="moveSym(\''+s.id+'\',-1)" '+(i===0?'disabled style="opacity:.25"':'')+' aria-label="上へ">▲</button>'
       + '<button class="iconbtn" onclick="moveSym(\''+s.id+'\',1)" '+(i===p.symbols.length-1?'disabled style="opacity:.25"':'')+' aria-label="下へ">▼</button>'
       + '<button class="iconbtn" onclick="delSym(\''+s.id+'\')" aria-label="削除">✕</button></div>';
+    h += '<div class="lbl" style="margin-top:12px">数える状態</div><div style="display:flex;gap:7px;flex-wrap:wrap">'
+      + '<button class="chip '+(s.scope==='ALL'?'on':'')+'" onclick="setScope(\''+s.id+'\',\'ALL\')">共通</button>';
+    p.states.forEach(function(st){
+      h += '<button class="chip '+(s.scope===st.id?'on':'')+'" onclick="setScope(\''+s.id+'\',\''+st.id+'\')">'+esc(st.name)+'</button>';
+    });
+    h += '</div>';
+    h += '<label class="sw" style="color:var(--dim);font-size:12.5px">'
+      + '<input type="checkbox" '+(s.showRate!==false?'checked':'')+' onchange="toggleRate(\''+s.id+'\',this.checked)">'
+      + '確率を表示する</label></div>';
   });
-  h += '</div><button class="btn" style="margin-top:9px" onclick="addSym()">小役を追加</button>'
-    + '<div class="hint">突入回数や到達回数など、確率を出す意味がないものはチェックを外してください。回数だけを表示します。</div>';
+  h += '<button class="btn" onclick="addSym()">小役を追加</button>'
+    + '<div class="hint">「共通」はすべての状態で数えます。特定の状態でしか数えないものは、その状態を選んでください。突入回数や到達回数など確率を出す意味がないものは、チェックを外すと回数だけになります。</div>';
 
   h += '<div class="sec">状態</div><div class="list">';
   p.states.forEach(function(st){
@@ -346,7 +366,13 @@ function setProfName(v){ profile(V.profileId).name = v || '無題'; save(); }
 function setProfNote(v){ profile(V.profileId).note = v; save(); }
 function addSym(){
   var p = profile(V.profileId);
-  p.symbols.push({id:uid(), name:'新しい小役', color:COLORS[p.symbols.length % COLORS.length], showRate:true});
+  p.symbols.push({id:uid(), name:'新しい小役', color:COLORS[p.symbols.length % COLORS.length],
+    showRate:true, scope:'ALL'});
+  save(); render();
+}
+function setScope(symId, scope){
+  var p = profile(V.profileId);
+  p.symbols.forEach(function(s){ if(s.id === symId) s.scope = scope; });
   save(); render();
 }
 function toggleRate(id,v){ var p=profile(V.profileId); p.symbols.forEach(function(s){ if(s.id===id) s.showRate = v; }); save(); }
@@ -382,6 +408,7 @@ function delState(id){
   if(p.states.length <= 1){ alert('状態は1つ以上必要です。'); return; }
   if(!confirm('この状態を削除しますか。過去の記録からも消えます。')) return;
   p.states = p.states.filter(function(s){ return s.id !== id; });
+  p.symbols.forEach(function(s){ if(s.scope === id) s.scope = 'ALL'; });
   save(); render();
 }
 function addGroup(){
@@ -419,8 +446,12 @@ function dupProfile(){
   var p = profile(V.profileId);
   var c = JSON.parse(JSON.stringify(p));
   c.id = uid(); c.name = p.name + ' のコピー';
-  c.symbols.forEach(function(s){ s.id = uid(); });
-  c.states.forEach(function(s){ s.id = uid(); });
+  var map = {};
+  c.states.forEach(function(s){ var o = s.id; s.id = uid(); map[o] = s.id; });
+  c.symbols.forEach(function(s){
+    s.id = uid();
+    if(s.scope !== 'ALL') s.scope = map[s.scope] || 'ALL';
+  });
   (c.hints||[]).forEach(function(g){ g.id = uid(); g.items.forEach(function(it){ it.id = uid(); }); });
   DB.profiles.push(c); save();
   go('profile', {profileId:c.id});
@@ -597,14 +628,24 @@ function paneCount(s,p){
   }
 
   var games = stateGames(s, sid);
+  var syms = sid === 'ALL' ? p.symbols
+    : p.symbols.filter(function(x){ return x.scope === 'ALL' || x.scope === sid; });
+
+  if(!syms.length){
+    h += '<div class="empty">この状態で数える小役がありません。<br>機種の設定で割り当ててください。</div>'
+      + '<button class="btn" onclick="go(\'profile\',{profileId:\''+p.id+'\'})">機種の設定を開く</button></div>';
+    return h;
+  }
+
   h += '<div class="grid">';
-  p.symbols.forEach(function(sym){
+  syms.forEach(function(sym){
     var c = countOf(s, sym.id, sid);
     var fg = textOn(sym.color);
-    var show = st.hasGames && sym.showRate !== false;
+    var g = sid === 'ALL' ? symbolGames(s, p, sym) : games;
+    var show = sym.showRate !== false && (sid === 'ALL' ? g > 0 : st.hasGames);
     h += '<div class="cell"><button class="sbtn" data-sym="'+sym.id+'" style="background:'+sym.color+';color:'+fg+'">'
       + '<span class="c num">'+c+'</span><span class="n">'+esc(sym.name)+'</span></button>'
-      + '<div class="rate"'+(show?' data-rate="1"':'')+'>'+(show ? rateText(games,c) : '&nbsp;')+'</div></div>';
+      + '<div class="rate"'+(show?' data-rate="1"':'')+'>'+(show ? rateText(g,c) : '&nbsp;')+'</div></div>';
   });
   h += '</div>';
 
@@ -833,10 +874,11 @@ function viewDetail(){
   h += '<div class="sec">小役</div><div class="list">';
   p.symbols.forEach(function(sym){
     var c = countOf(s, sym.id, 'ALL');
+    var g = symbolGames(s, p, sym);
     h += '<div class="item"><span style="width:12px;height:12px;border-radius:4px;background:'+sym.color+';flex:none"></span>'
       + '<span style="flex:1">'+esc(sym.name)+'</span>'
       + '<span class="num" style="font-weight:600">'+c+'</span>'
-      + '<span class="m num" style="flex:none;text-align:right;min-width:62px">'+(sym.showRate!==false ? rateText(totalGames(s), c) : '—')+'</span></div>';
+      + '<span class="m num" style="flex:none;text-align:right;min-width:62px">'+(sym.showRate!==false && g ? rateText(g, c) : '—')+'</span></div>';
   });
   h += '</div>';
 
