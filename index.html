@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E1113">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>小役カウンター</title>
+<style>
+:root{
+  --bg:#0E1113; --panel:#171B1E; --panel2:#1F2429; --line:#2B3238;
+  --fg:#E9ECEE; --dim:#8D959B; --accent:#2FD1A0; --danger:#E8615A;
+  --r:10px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--fg)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:15px;line-height:1.5;padding-bottom:env(safe-area-inset-bottom)}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:none;padding:0;cursor:pointer}
+input,select{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+.num{font-variant-numeric:tabular-nums}
+.bar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.bar h1{margin:0;font-size:16px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar h1 .sub{display:block;font-size:11px;color:var(--dim);font-weight:400;margin-top:1px}
+.iconbtn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:var(--r);color:var(--dim);font-size:20px}
+.wrap{padding:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lbl{font-size:12px;color:var(--dim);margin-bottom:4px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.btn{display:block;width:100%;text-align:center;padding:13px;border-radius:var(--r);border:1px solid var(--line);background:var(--panel2);font-size:15px}
+.btn:active{background:var(--line)}
+.btn-primary{background:var(--accent);color:#05231A;border-color:var(--accent);font-weight:600}
+.btn-danger{color:var(--danger);border-color:#4A2A29}
+.acts{display:flex;border-bottom:1px solid var(--line);background:var(--panel)}
+.acts button{flex:1;padding:9px 2px;border-right:1px solid var(--line);color:var(--dim);font-size:11px}
+.acts button:last-child{border-right:none}
+.acts .ic{display:block;font-size:17px;margin-bottom:2px;color:var(--fg)}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;padding:13px 0;font-size:14px;color:var(--dim);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.chips{display:flex;gap:7px;padding:12px 14px;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;font-size:13px;padding:7px 14px;border-radius:16px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.chip.on{background:rgba(47,209,160,.15);border-color:var(--accent);color:var(--accent)}
+.adj{display:flex;gap:6px;margin-top:9px}
+.adj button{flex:1;padding:10px 0;border:1px solid var(--line);border-radius:var(--r);font-size:13px;color:var(--dim)}
+.adj button:active{background:var(--line)}
+.target{text-align:center;margin-top:12px;font-size:13px;color:var(--dim)}
+.target b{font-size:20px;color:var(--fg);font-weight:600;margin-left:5px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.cell{display:flex;flex-direction:column}
+.sbtn{border-radius:12px;padding:14px 6px;min-height:80px;display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;user-select:none}
+.sbtn:active{filter:brightness(1.25)}
+.sbtn .c{font-size:27px;font-weight:600;line-height:1.1}
+.sbtn .n{font-size:12.5px;margin-top:3px;opacity:.85}
+.rate{text-align:center;font-size:12.5px;color:var(--dim);margin-top:5px}
+.dash{border:1px dashed var(--line);border-radius:12px;min-height:80px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:13px;width:100%}
+.list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.item{display:flex;align-items:center;gap:11px;padding:13px 14px;border-bottom:1px solid var(--line);background:var(--panel);width:100%;text-align:left}
+.item:last-child{border-bottom:none}
+.item:active{background:var(--panel2)}
+.item .g{font-size:17px;font-weight:600;min-width:62px}
+.item .m{flex:1;font-size:13px;color:var(--dim)}
+.badge{font-size:11px;padding:3px 8px;border-radius:9px;background:#4A3A16;color:#F0B93C}
+.hc{font-size:19px;font-weight:600;min-width:34px;text-align:right;color:var(--dim)}
+.hc.hit{color:var(--accent)}
+.empty{text-align:center;color:var(--dim);font-size:13.5px;padding:32px 16px}
+.sec{font-size:12px;color:var(--dim);margin:18px 0 8px}
+.sec:first-child{margin-top:0}
+.sw{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px}
+.sw input{width:18px;height:18px;flex:none}
+.hint{font-size:12px;color:var(--dim);line-height:1.6;margin-top:8px}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;z-index:50}
+.sheet>div{background:var(--panel);width:100%;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:18px 14px calc(18px + env(safe-area-inset-bottom))}
+.sheet h2{margin:0 0 14px;font-size:16px;font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:9px 18px;font-size:13px;z-index:99}
+.dragging{opacity:.4}
+.pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:8px;border:1px solid var(--line);color:var(--dim);margin-left:6px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ---------- storage ---------- */
+var MEM = null;
+function load(){
+  var raw = null;
+  try { raw = localStorage.getItem('koyaku'); } catch(e){ raw = MEM; }
+  if(!raw) return {profiles:[],sessions:[],activeId:null};
+  try { return migrate(JSON.parse(raw)); } catch(e){ return {profiles:[],sessions:[],activeId:null}; }
+}
+function migrate(d){
+  (d.sessions||[]).forEach(function(s){
+    if(!s.date){
+      var t = new Date(s.startedAt || Date.now());
+      s.date = t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);
+    }
+    if(!s.hintCounts) s.hintCounts = {};
+    var p = (d.profiles||[]).filter(function(x){return x.id===s.profileId})[0];
+    (s.wins||[]).forEach(function(w){
+      if(w.winType === undefined){
+        var t = p && (p.winTypes||[]).filter(function(x){return x.id===w.winTypeId})[0];
+        w.winType = t ? t.name : '';
+      }
+      if(w.trigger === undefined){
+        if(w.triggerKind === 'SYMBOL'){
+          var sy = p && p.symbols.filter(function(x){return x.id===w.triggerSymbolId})[0];
+          w.trigger = sy ? sy.name : '';
+        } else {
+          w.trigger = {SOLO:'単独', OTHER:''}[w.triggerKind] || '';
+        }
+      }
+      delete w.winTypeId; delete w.triggerKind; delete w.triggerSymbolId;
+    });
+  });
+  (d.profiles||[]).forEach(function(p){
+    delete p.winTypes;
+    if(!p.hints) p.hints = [];
+    (p.symbols||[]).forEach(function(s){ if(s.showRate === undefined) s.showRate = true; });
+  });
+  return d;
+}
+function save(){
+  var raw = JSON.stringify(DB);
+  try { localStorage.setItem('koyaku', raw); } catch(e){ MEM = raw; }
+}
+var DB = load();
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* ---------- view state ---------- */
+var V = {name:'home', tab:'count', stateId:null, profileId:null, sessionId:null};
+var UNDO = [];
+var wakeLock = null;
+
+var COLORS = ['#E8615A','#E89A3C','#5BB84A','#3C9BE8','#9B6BE8','#E85AA8','#2FD1A0','#8D959B'];
+function textOn(hex){ 
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return (r*299+g*587+b*114)/1000 > 150 ? '#101314' : '#FFFFFF';
+}
+
+/* ---------- helpers ---------- */
+function profile(id){ return DB.profiles.filter(function(p){return p.id===id})[0]; }
+function session(id){ return DB.sessions.filter(function(s){return s.id===id})[0]; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]}); }
+function fmt(n){ return Number(n||0).toLocaleString('ja-JP'); }
+function todayStr(){
+  var d = new Date(), p = function(n){ return ('0'+n).slice(-2); };
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+}
+function dateLabel(v){
+  if(!v) return '';
+  var a = String(v).split('-');
+  return a.length === 3 ? (+a[1])+'/'+(+a[2]) : v;
+}
+function seatLabel(s){
+  var a = [];
+  if(s.date) a.push(dateLabel(s.date));
+  if(s.store) a.push(s.store);
+  if(s.seat) a.push(s.seat + '番台');
+  return a.join(' ・ ');
+}
+
+function totalGames(s){ return Math.max(0, (s.currentGames||0) - (s.startGames||0)); }
+function stateGames(s, stateId){
+  if(stateId === 'ALL') return totalGames(s);
+  return s.stateGames[stateId] || 0;
+}
+function countOf(s, symId, stateId){
+  if(stateId === 'ALL'){
+    var p = profile(s.profileId), t = 0;
+    p.states.forEach(function(st){ t += (s.counts[symId+':'+st.id] || 0); });
+    return t;
+  }
+  return s.counts[symId+':'+stateId] || 0;
+}
+function rateText(games, count){
+  if(!count || !games) return '—';
+  return '1/' + (games/count).toFixed(1);
+}
+function toast(msg){
+  var d = document.createElement('div');
+  d.className = 'toast'; d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(function(){ d.remove(); }, 1700);
+}
+
+/* ---------- wake lock ---------- */
+function lockScreen(on){
+  if(on){
+    if(wakeLock || !navigator.wakeLock) return;
+    navigator.wakeLock.request('screen').then(function(l){ wakeLock = l; }).catch(function(){});
+  } else if(wakeLock){
+    wakeLock.release().catch(function(){}); wakeLock = null;
+  }
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible' && V.name === 'session') lockScreen(true);
+});
+
+/* ---------- router ---------- */
+function go(name, opts){
+  Object.assign(V, {name:name}, opts||{});
+  lockScreen(name === 'session');
+  render();
+}
+function render(){
+  var html = '';
+  if(V.name === 'home') html = viewHome();
+  else if(V.name === 'profile') html = viewProfile();
+  else if(V.name === 'session') html = viewSession();
+  else if(V.name === 'history') html = viewHistory();
+  else if(V.name === 'detail') html = viewDetail();
+  else if(V.name === 'data') html = viewData();
+  document.getElementById('app').innerHTML = html;
+  window.scrollTo(0,0);
+}
+
+/* ---------- home ---------- */
+function viewHome(){
+  var open = DB.sessions.filter(function(s){ return !s.endedAt; });
+  var h = '<div class="bar"><h1>小役カウンター</h1>'
+    + '<button class="iconbtn" onclick="go(\'history\')" aria-label="履歴">☰</button>'
+    + '<button class="iconbtn" onclick="go(\'data\')" aria-label="データ">⚙</button></div><div class="wrap">';
+
+  if(open.length){
+    h += '<div class="sec">記録中</div>';
+    open.forEach(function(s){
+      var p = profile(s.profileId);
+      h += '<button class="card" style="width:100%;text-align:left" onclick="resume(\''+s.id+'\')">'
+        + '<div style="font-weight:600">'+esc(p ? p.name : '(削除された機種)')+'</div>'
+        + '<div class="hint" style="margin-top:4px">'+esc(seatLabel(s))+'</div>'
+        + '<div class="hint" style="margin-top:2px">'+fmt(totalGames(s))+'G / 当選'+s.wins.length+'回</div></button>';
+    });
+  }
+
+  h += '<div class="sec">機種</div>';
+  if(!DB.profiles.length){
+    h += '<div class="empty">まず機種を作ります。<br>小役・状態・当選種別を自分で決められます。</div>';
+  } else {
+    h += '<div class="list">';
+    DB.profiles.forEach(function(p){
+      h += '<div class="item"><button style="flex:1;text-align:left" onclick="startSession(\''+p.id+'\')">'
+        + '<div style="font-weight:600">'+esc(p.name)+'</div>'
+        + '<div class="m">小役'+p.symbols.length+' / 状態'+p.states.length+'</div></button>'
+        + '<button class="iconbtn" onclick="go(\'profile\',{profileId:\''+p.id+'\'})" aria-label="編集">✎</button></div>';
+    });
+    h += '</div>';
+  }
+  h += '<button class="btn btn-primary" style="margin-top:14px" onclick="newProfile()">機種を追加</button>';
+  h += '<div class="hint">機種名をタップすると実戦を開始します。</div></div>';
+  return h;
+}
+
+function newProfile(){
+  var p = {id:uid(), name:'新しい機種', note:'',
+    symbols:[
+      {id:uid(), name:'弱チェリー', color:'#E8615A', showRate:true},
+      {id:uid(), name:'強チェリー', color:'#E85AA8', showRate:true},
+      {id:uid(), name:'スイカ', color:'#5BB84A', showRate:true},
+      {id:uid(), name:'ブドウ', color:'#9B6BE8', showRate:true},
+      {id:uid(), name:'チャンス目', color:'#E89A3C', showRate:true}
+    ],
+    states:[
+      {id:uid(), name:'通常時', hasGames:true},
+      {id:uid(), name:'確定演出', hasGames:false}
+    ],
+    hints:[]
+  };
+  DB.profiles.push(p); save();
+  go('profile', {profileId:p.id});
+}
+
+/* ---------- profile editor ---------- */
+function viewProfile(){
+  var p = profile(V.profileId);
+  if(!p) return viewHome();
+  var h = '<div class="bar"><button class="iconbtn" onclick="go(\'home\')" aria-label="戻る">←</button><h1>機種の設定</h1></div><div class="wrap">';
+
+  h += '<div class="sec">機種名</div>'
+    + '<input value="'+esc(p.name)+'" onchange="setProfName(this.value)">'
+    + '<div class="sec">メモ</div>'
+    + '<input value="'+esc(p.note)+'" placeholder="設定推測の要点など" onchange="setProfNote(this.value)">';
+
+  h += '<div class="sec">小役 <span class="pill">タップして編集</span></div><div class="list">';
+  p.symbols.forEach(function(s,i){
+    h += '<div class="item">'
+      + '<button onclick="pickColor(\''+s.id+'\')" style="width:26px;height:26px;border-radius:7px;flex:none;background:'+s.color+'" aria-label="色"></button>'
+      + '<div style="flex:1;min-width:0">'
+      + '<input style="background:none;border:none;padding:0" value="'+esc(s.name)+'" onchange="renameSym(\''+s.id+'\',this.value)">'
+      + '<label class="sw" style="margin-top:6px;color:var(--dim);font-size:12.5px">'
+      + '<input type="checkbox" '+(s.showRate!==false?'checked':'')+' onchange="toggleRate(\''+s.id+'\',this.checked)">'
+      + '確率を表示する</label></div>'
+      + '<button class="iconbtn" onclick="moveSym(\''+s.id+'\',-1)" '+(i===0?'disabled style="opacity:.25"':'')+' aria-label="上へ">▲</button>'
+      + '<button class="iconbtn" onclick="moveSym(\''+s.id+'\',1)" '+(i===p.symbols.length-1?'disabled style="opacity:.25"':'')+' aria-label="下へ">▼</button>'
+      + '<button class="iconbtn" onclick="delSym(\''+s.id+'\')" aria-label="削除">✕</button></div>';
+  });
+  h += '</div><button class="btn" style="margin-top:9px" onclick="addSym()">小役を追加</button>'
+    + '<div class="hint">突入回数や到達回数など、確率を出す意味がないものはチェックを外してください。回数だけを表示します。</div>';
+
+  h += '<div class="sec">状態</div><div class="list">';
+  p.states.forEach(function(st){
+    h += '<div class="item"><div style="flex:1">'
+      + '<input style="background:none;border:none;padding:0" value="'+esc(st.name)+'" onchange="renameState(\''+st.id+'\',this.value)">'
+      + '<label class="sw" style="margin-top:6px;color:var(--dim);font-size:12.5px">'
+      + '<input type="checkbox" '+(st.hasGames?'checked':'')+' onchange="toggleGames(\''+st.id+'\',this.checked)">'
+      + 'ゲーム数を入力して確率を出す</label></div>'
+      + '<button class="iconbtn" onclick="delState(\''+st.id+'\')" aria-label="削除">✕</button></div>';
+  });
+  h += '</div><button class="btn" style="margin-top:9px" onclick="addState()">状態を追加</button>'
+    + '<div class="hint">チェックを外した状態は回数だけを数えます。確定演出の出現回数など、確率を出す意味がないものに使います。</div>';
+
+  h += '<div class="sec">設定画面 <span class="pill">示唆・確定画面</span></div>';
+  p.hints.forEach(function(g){
+    h += '<div class="card"><div style="display:flex;align-items:center;gap:8px">'
+      + '<input style="flex:1;background:none;border:none;padding:0;font-weight:600" value="'+esc(g.name)+'" onchange="renameGroup(\''+g.id+'\',this.value)">'
+      + '<button class="iconbtn" onclick="delGroup(\''+g.id+'\')" aria-label="グループを削除">✕</button></div>';
+    if(g.items.length){
+      h += '<div class="list" style="margin-top:10px">';
+      g.items.forEach(function(it){
+        h += '<div class="item" style="padding:10px 12px">'
+          + '<input style="flex:1;background:none;border:none;padding:0" value="'+esc(it.name)+'" onchange="renameItem(\''+it.id+'\',this.value)">'
+          + '<button class="iconbtn" onclick="delItem(\''+g.id+'\',\''+it.id+'\')" aria-label="削除">✕</button></div>';
+      });
+      h += '</div>';
+    }
+    h += '<button class="btn" style="margin-top:9px" onclick="addItem(\''+g.id+'\')">項目を追加</button></div>';
+  });
+  h += '<button class="btn" onclick="addGroup()">グループを追加</button>'
+    + '<div class="hint">「獲得枚数表示」「CZ終了画面」「ボイス」のような見出しを作り、その下に項目を並べます。実戦中はタップして回数を数えます。</div>';
+
+  h += '<div class="sec">　</div>'
+    + '<button class="btn" onclick="dupProfile()">この機種を複製</button>'
+    + '<button class="btn btn-danger" style="margin-top:9px" onclick="delProfile()">この機種を削除</button>'
+    + '<button class="btn btn-primary" style="margin-top:16px" onclick="go(\'home\')">設定を終える</button></div>';
+  return h;
+}
+
+function setProfName(v){ profile(V.profileId).name = v || '無題'; save(); }
+function setProfNote(v){ profile(V.profileId).note = v; save(); }
+function addSym(){
+  var p = profile(V.profileId);
+  p.symbols.push({id:uid(), name:'新しい小役', color:COLORS[p.symbols.length % COLORS.length], showRate:true});
+  save(); render();
+}
+function toggleRate(id,v){ var p=profile(V.profileId); p.symbols.forEach(function(s){ if(s.id===id) s.showRate = v; }); save(); }
+function renameSym(id,v){ var p=profile(V.profileId); p.symbols.forEach(function(s){ if(s.id===id) s.name = v||'無題'; }); save(); }
+function delSym(id){
+  if(!confirm('この小役を削除しますか。過去の記録からも消えます。')) return;
+  var p = profile(V.profileId);
+  p.symbols = p.symbols.filter(function(s){ return s.id !== id; });
+  save(); render();
+}
+function moveSym(id,d){
+  var p = profile(V.profileId), i = p.symbols.findIndex(function(s){ return s.id===id; });
+  var j = i + d;
+  if(j < 0 || j >= p.symbols.length) return;
+  var t = p.symbols[i]; p.symbols[i] = p.symbols[j]; p.symbols[j] = t;
+  save(); render();
+}
+function pickColor(id){
+  var p = profile(V.profileId), s = p.symbols.filter(function(x){return x.id===id})[0];
+  var i = COLORS.indexOf(s.color);
+  s.color = COLORS[(i+1) % COLORS.length];
+  save(); render();
+}
+function addState(){
+  var p = profile(V.profileId);
+  p.states.push({id:uid(), name:'新しい状態', hasGames:true});
+  save(); render();
+}
+function renameState(id,v){ var p=profile(V.profileId); p.states.forEach(function(s){ if(s.id===id) s.name = v||'無題'; }); save(); }
+function toggleGames(id,v){ var p=profile(V.profileId); p.states.forEach(function(s){ if(s.id===id) s.hasGames = v; }); save(); }
+function delState(id){
+  var p = profile(V.profileId);
+  if(p.states.length <= 1){ alert('状態は1つ以上必要です。'); return; }
+  if(!confirm('この状態を削除しますか。過去の記録からも消えます。')) return;
+  p.states = p.states.filter(function(s){ return s.id !== id; });
+  save(); render();
+}
+function addGroup(){
+  var p = profile(V.profileId);
+  p.hints.push({id:uid(), name:'新しいグループ', items:[]});
+  save(); render();
+}
+function renameGroup(id,v){
+  var p = profile(V.profileId);
+  p.hints.forEach(function(g){ if(g.id===id) g.name = v||'無題'; });
+  save();
+}
+function delGroup(id){
+  if(!confirm('このグループと中の項目を削除しますか。過去の記録からも消えます。')) return;
+  var p = profile(V.profileId);
+  p.hints = p.hints.filter(function(g){ return g.id !== id; });
+  save(); render();
+}
+function addItem(gid){
+  var p = profile(V.profileId);
+  p.hints.forEach(function(g){ if(g.id===gid) g.items.push({id:uid(), name:'新しい項目'}); });
+  save(); render();
+}
+function renameItem(id,v){
+  var p = profile(V.profileId);
+  p.hints.forEach(function(g){ g.items.forEach(function(it){ if(it.id===id) it.name = v||'無題'; }); });
+  save();
+}
+function delItem(gid,id){
+  var p = profile(V.profileId);
+  p.hints.forEach(function(g){ if(g.id===gid) g.items = g.items.filter(function(it){ return it.id !== id; }); });
+  save(); render();
+}
+function dupProfile(){
+  var p = profile(V.profileId);
+  var c = JSON.parse(JSON.stringify(p));
+  c.id = uid(); c.name = p.name + ' のコピー';
+  c.symbols.forEach(function(s){ s.id = uid(); });
+  c.states.forEach(function(s){ s.id = uid(); });
+  (c.hints||[]).forEach(function(g){ g.id = uid(); g.items.forEach(function(it){ it.id = uid(); }); });
+  DB.profiles.push(c); save();
+  go('profile', {profileId:c.id});
+}
+function delProfile(){
+  if(!confirm('この機種と、その実戦記録をすべて削除しますか。')) return;
+  DB.sessions = DB.sessions.filter(function(s){ return s.profileId !== V.profileId; });
+  DB.profiles = DB.profiles.filter(function(p){ return p.id !== V.profileId; });
+  save(); go('home');
+}
+
+/* ---------- session ---------- */
+function infoFields(v){
+  return '<div class="lbl">日付</div><input type="date" id="i_d" value="'+esc(v.date)+'">'
+    + '<div class="row" style="margin-top:12px">'
+    + '<div><div class="lbl">店名</div><input id="i_s" value="'+esc(v.store)+'" placeholder="任意"></div>'
+    + '<div><div class="lbl">台番号</div><input id="i_n" value="'+esc(v.seat)+'" placeholder="任意"></div></div>'
+    + '<div class="lbl" style="margin-top:12px">開始ゲーム数</div>'
+    + '<input class="num" type="number" inputmode="numeric" id="i_g" value="'+(v.startGames||0)+'">';
+}
+function openSheet(html){
+  var d = document.createElement('div'); d.id = 'sheet'; d.innerHTML = html;
+  document.body.appendChild(d);
+}
+function startSession(profileId){
+  var p = profile(profileId);
+  if(!p.symbols.length){ alert('先に小役を登録してください。'); go('profile',{profileId:profileId}); return; }
+  var last = DB.sessions.filter(function(s){ return s.profileId === profileId; }).slice(-1)[0];
+  openSheet('<div class="sheet" onclick="if(event.target===this)closeSheet()"><div>'
+    + '<h2>'+esc(p.name)+' を打つ</h2>'
+    + infoFields({date:todayStr(), store:(last?last.store:''), seat:'', startGames:0})
+    + '<button class="btn btn-primary" style="margin-top:16px" onclick="doStart(\''+profileId+'\')">記録を始める</button>'
+    + '<button class="btn" style="margin-top:9px" onclick="closeSheet()">閉じる</button></div></div>');
+}
+function readInfo(){
+  return {
+    date: document.getElementById('i_d').value || todayStr(),
+    store: document.getElementById('i_s').value.trim(),
+    seat: document.getElementById('i_n').value.trim(),
+    startGames: Math.max(0, parseInt(document.getElementById('i_g').value,10) || 0)
+  };
+}
+function doStart(profileId){
+  var v = readInfo(), p = profile(profileId);
+  var s = {id:uid(), profileId:profileId, startedAt:Date.now(), endedAt:null,
+    date:v.date, store:v.store, seat:v.seat,
+    startGames:v.startGames, currentGames:v.startGames,
+    stateGames:{}, counts:{}, hintCounts:{}, wins:[], memo:''};
+  DB.sessions.push(s); save();
+  UNDO = []; closeSheet();
+  go('session', {sessionId:s.id, tab:'count', stateId:p.states[0].id});
+}
+function editInfo(){
+  var s = session(V.sessionId);
+  openSheet('<div class="sheet" onclick="if(event.target===this)closeSheet()"><div>'
+    + '<h2>台の情報</h2>' + infoFields(s)
+    + '<div class="hint">開始ゲーム数を変えると対象ゲーム数も変わります。</div>'
+    + '<button class="btn btn-primary" style="margin-top:16px" onclick="saveInfo()">保存する</button>'
+    + '<button class="btn" style="margin-top:9px" onclick="closeSheet()">閉じる</button></div></div>');
+}
+function saveInfo(){
+  var s = session(V.sessionId), v = readInfo();
+  s.date = v.date; s.store = v.store; s.seat = v.seat; s.startGames = v.startGames;
+  if(s.currentGames < s.startGames) s.currentGames = s.startGames;
+  save(); closeSheet(); render();
+}
+function resume(id){
+  var s = session(id), p = profile(s.profileId);
+  UNDO = [];
+  go('session', {sessionId:id, tab:'count', stateId:p.states[0].id});
+}
+
+function viewSession(){
+  var s = session(V.sessionId);
+  if(!s) return viewHome();
+  var p = profile(s.profileId);
+  var sub = seatLabel(s);
+  var h = '<div class="bar"><button class="iconbtn" onclick="go(\'home\')" aria-label="戻る">←</button>'
+    + '<h1>'+esc(p.name)+(sub ? '<span class="sub">'+esc(sub)+'</span>' : '')+'</h1></div>'
+    + '<div class="acts">'
+      + '<button onclick="editInfo()"><span class="ic">🎰</span>台情報</button>'
+      + '<button onclick="showMemo()"><span class="ic">✎</span>メモ</button>'
+      + '<button onclick="clearSession()"><span class="ic">⌫</span>クリア</button>'
+      + '<button onclick="endSession()"><span class="ic">⏻</span>保存して終了</button>'
+    + '</div>'
+    + '<div class="tabs">'
+      + '<button class="'+(V.tab==='count'?'on':'')+'" onclick="go(\'session\',{tab:\'count\'})">カウント</button>'
+      + '<button class="'+(V.tab==='wins'?'on':'')+'" onclick="go(\'session\',{tab:\'wins\'})">当選記録</button>'
+      + '<button class="'+(V.tab==='hints'?'on':'')+'" onclick="go(\'session\',{tab:\'hints\'})">設定画面</button>'
+    + '</div>';
+  if(V.tab === 'wins') h += paneWins(s,p);
+  else if(V.tab === 'hints') h += paneHints(s,p);
+  else h += paneCount(s,p);
+  return h;
+}
+
+function paneHints(s,p){
+  var h = '<div class="wrap">';
+  if(!p.hints.length){
+    return h + '<div class="empty">設定示唆の項目がまだありません。<br>機種の設定から追加してください。</div>'
+      + '<button class="btn" onclick="go(\'profile\',{profileId:\''+p.id+'\'})">機種の設定を開く</button></div>';
+  }
+  p.hints.forEach(function(g){
+    h += '<div class="sec">'+esc(g.name)+'</div>';
+    if(!g.items.length){ h += '<div class="hint" style="margin-top:0">項目なし</div>'; return; }
+    h += '<div class="list">';
+    g.items.forEach(function(it){
+      var c = s.hintCounts[it.id] || 0;
+      h += '<button class="item" data-hint="'+it.id+'"><span style="flex:1">'+esc(it.name)+'</span>'
+        + '<span class="hc num'+(c?' hit':'')+'">'+c+'</span></button>';
+    });
+    h += '</div>';
+  });
+  h += '<div class="hint">タップで+1、長押しで−1。</div>'
+    + '<button class="btn" style="margin-top:12px" onclick="undo()">ひとつ戻す</button></div>';
+  setTimeout(bindHints, 0);
+  return h;
+}
+function bindHints(){
+  document.querySelectorAll('[data-hint]').forEach(function(el){
+    var timer = null, longed = false;
+    el.addEventListener('pointerdown', function(){
+      longed = false;
+      timer = setTimeout(function(){ longed = true; bumpHint(el.dataset.hint, -1); }, 450);
+    });
+    el.addEventListener('pointerup', function(){
+      clearTimeout(timer);
+      if(!longed) bumpHint(el.dataset.hint, 1);
+    });
+    el.addEventListener('pointerleave', function(){ clearTimeout(timer); });
+    el.addEventListener('pointercancel', function(){ clearTimeout(timer); });
+  });
+}
+function bumpHint(id, d){
+  var s = session(V.sessionId);
+  var next = (s.hintCounts[id] || 0) + d;
+  if(next < 0) return;
+  s.hintCounts[id] = next;
+  if(d > 0) UNDO.push({t:'hint', id:id});
+  save();
+  if(navigator.vibrate) navigator.vibrate(d > 0 ? 12 : [12,40,12]);
+  document.querySelectorAll('[data-hint="'+id+'"] .hc').forEach(function(el){
+    el.textContent = next;
+    el.classList.toggle('hit', next > 0);
+  });
+}
+
+function paneCount(s,p){
+  var sid = V.stateId;
+  if(sid !== 'ALL' && !p.states.some(function(x){return x.id===sid})) sid = V.stateId = p.states[0].id;
+  var st = sid === 'ALL' ? {id:'ALL', name:'全状態', hasGames:true} : p.states.filter(function(x){return x.id===sid})[0];
+
+  var h = '<div class="chips">';
+  p.states.forEach(function(x){
+    h += '<button class="chip '+(sid===x.id?'on':'')+'" onclick="go(\'session\',{stateId:\''+x.id+'\'})">'+esc(x.name)+'</button>';
+  });
+  h += '<button class="chip '+(sid==='ALL'?'on':'')+'" onclick="go(\'session\',{stateId:\'ALL\'})">全状態</button></div>';
+
+  h += '<div class="wrap">';
+  if(sid === 'ALL'){
+    h += '<div class="card"><div class="row">'
+      + '<div><div class="lbl">開始ゲーム</div><input class="num" type="number" inputmode="numeric" value="'+s.startGames+'" onchange="setG(\'startGames\',this.value)"></div>'
+      + '<div><div class="lbl">現在ゲーム</div><input class="num" type="number" inputmode="numeric" value="'+s.currentGames+'" onchange="setG(\'currentGames\',this.value)"></div>'
+      + '</div><div class="adj">'
+      + '<button onclick="adj(100)">+100</button><button onclick="adj(10)">+10</button>'
+      + '<button onclick="adj(1)">+1</button><button onclick="adj(-1)">−1</button></div>'
+      + '<div class="target">対象ゲーム数<b class="num">'+fmt(totalGames(s))+'</b></div></div>';
+  } else if(st.hasGames){
+    h += '<div class="card"><div class="lbl">'+esc(st.name)+'のゲーム数</div>'
+      + '<input class="num" type="number" inputmode="numeric" value="'+(s.stateGames[sid]||0)+'" onchange="setStateG(this.value)">'
+      + '<div class="adj">'
+      + '<button onclick="adjState(100)">+100</button><button onclick="adjState(10)">+10</button>'
+      + '<button onclick="adjState(1)">+1</button><button onclick="adjState(-1)">−1</button></div></div>';
+  }
+
+  var games = stateGames(s, sid);
+  h += '<div class="grid">';
+  p.symbols.forEach(function(sym){
+    var c = countOf(s, sym.id, sid);
+    var fg = textOn(sym.color);
+    var show = st.hasGames && sym.showRate !== false;
+    h += '<div class="cell"><button class="sbtn" data-sym="'+sym.id+'" style="background:'+sym.color+';color:'+fg+'">'
+      + '<span class="c num">'+c+'</span><span class="n">'+esc(sym.name)+'</span></button>'
+      + '<div class="rate"'+(show?' data-rate="1"':'')+'>'+(show ? rateText(games,c) : '&nbsp;')+'</div></div>';
+  });
+  h += '</div>';
+
+  if(sid === 'ALL'){
+    h += '<div class="hint">全状態は集計の表示だけです。カウントするには状態を選んでください。</div>';
+  } else {
+    h += '<div class="hint">タップで+1、長押しで−1。</div>';
+    h += '<button class="btn" style="margin-top:12px" onclick="undo()">ひとつ戻す</button>';
+  }
+  h += '</div>';
+  setTimeout(bindButtons, 0);
+  return h;
+}
+
+function bindButtons(){
+  if(V.stateId === 'ALL') return;
+  var els = document.querySelectorAll('.sbtn');
+  Array.prototype.forEach.call(els, function(el){
+    var timer = null, longed = false;
+    el.addEventListener('pointerdown', function(){
+      longed = false;
+      timer = setTimeout(function(){ longed = true; bump(el.dataset.sym, -1); }, 450);
+    });
+    el.addEventListener('pointerup', function(){
+      clearTimeout(timer);
+      if(!longed) bump(el.dataset.sym, 1);
+    });
+    el.addEventListener('pointerleave', function(){ clearTimeout(timer); });
+    el.addEventListener('pointercancel', function(){ clearTimeout(timer); });
+  });
+}
+
+function bump(symId, d){
+  var s = session(V.sessionId), key = symId + ':' + V.stateId;
+  var next = (s.counts[key] || 0) + d;
+  if(next < 0) return;
+  s.counts[key] = next;
+  if(d > 0) UNDO.push({t:'count', key:key});
+  save();
+  if(navigator.vibrate) navigator.vibrate(d > 0 ? 12 : [12,40,12]);
+  refreshCounts();
+}
+function refreshCounts(){
+  var s = session(V.sessionId), sid = V.stateId;
+  var games = stateGames(s, sid);
+  document.querySelectorAll('.sbtn').forEach(function(el){
+    var c = countOf(s, el.dataset.sym, sid);
+    el.querySelector('.c').textContent = c;
+    var rate = el.parentNode.querySelector('.rate[data-rate]');
+    if(rate) rate.textContent = rateText(games, c);
+  });
+}
+function undo(){
+  var u = UNDO.pop();
+  if(!u){ toast('戻せる操作はありません'); return; }
+  var s = session(V.sessionId);
+  if(u.t === 'count'){
+    s.counts[u.key] = Math.max(0, (s.counts[u.key]||0) - 1);
+    save(); refreshCounts(); toast('ひとつ戻しました');
+  } else if(u.t === 'hint'){
+    var s2 = session(V.sessionId);
+    s2.hintCounts[u.id] = Math.max(0, (s2.hintCounts[u.id]||0) - 1);
+    save(); render(); toast('ひとつ戻しました');
+  } else if(u.t === 'win'){
+    s.wins = s.wins.filter(function(w){ return w.id !== u.id; });
+    save(); render(); toast('当選記録を取り消しました');
+  }
+}
+function setG(field, v){
+  var s = session(V.sessionId);
+  s[field] = parseInt(v,10) || 0;
+  save(); render();
+}
+function adj(d){
+  var s = session(V.sessionId);
+  s.currentGames = Math.max(0, s.currentGames + d);
+  save(); render();
+}
+function setStateG(v){
+  var s = session(V.sessionId);
+  s.stateGames[V.stateId] = Math.max(0, parseInt(v,10) || 0);
+  save(); render();
+}
+function adjState(d){
+  var s = session(V.sessionId);
+  s.stateGames[V.stateId] = Math.max(0, (s.stateGames[V.stateId]||0) + d);
+  save(); render();
+}
+
+/* ---------- wins ---------- */
+function paneWins(s,p){
+  var h = '<div class="wrap">'
+    + '<button class="btn btn-primary" onclick="addWinNow()">'+fmt(s.currentGames)+'G で当選を記録</button>'
+    + '<div class="hint">種別と契機は空のまま記録されます。あとから各行をタップして埋められます。</div>';
+  h += '<div class="sec">当選履歴</div>';
+  if(!s.wins.length){
+    h += '<div class="empty">まだ記録がありません。</div>';
+  } else {
+    h += '<div class="list">';
+    s.wins.slice().sort(function(a,b){ return a.games - b.games; }).forEach(function(w){
+      var need = !w.winType && !w.trigger;
+      h += '<button class="item" onclick="editWin(\''+w.id+'\')">'
+        + '<span class="g num">'+fmt(w.games)+'G</span>'
+        + '<span class="m">'+esc(winLabel(w))+'</span>'
+        + (need ? '<span class="badge">未入力</span>' : '') + '</button>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+function winLabel(w){
+  var a = w.winType || '種別なし', b = w.trigger || '契機なし';
+  return a + ' / ' + b;
+}
+function pastValues(field){
+  var s = session(V.sessionId), out = [];
+  DB.sessions.forEach(function(x){
+    if(x.profileId !== s.profileId) return;
+    (x.wins||[]).forEach(function(w){
+      var v = w[field];
+      if(v && out.indexOf(v) < 0) out.push(v);
+    });
+  });
+  return out;
+}
+function addWinNow(){
+  var s = session(V.sessionId);
+  var w = {id:uid(), games:s.currentGames, winType:'', trigger:'', note:''};
+  s.wins.push(w); UNDO.push({t:'win', id:w.id});
+  save(); render();
+  toast(fmt(w.games) + 'G で記録しました');
+}
+function editWin(id){
+  var s = session(V.sessionId);
+  var w = s.wins.filter(function(x){return x.id===id})[0];
+  var dl = function(listId, vals){
+    var o = '<datalist id="'+listId+'">';
+    vals.forEach(function(v){ o += '<option value="'+esc(v)+'">'; });
+    return o + '</datalist>';
+  };
+  var h = '<div class="sheet" onclick="if(event.target===this)closeSheet()"><div>'
+    + '<h2>当選の内容</h2>'
+    + '<div class="lbl">ゲーム数</div><input class="num" type="number" inputmode="numeric" id="w_g" value="'+w.games+'">'
+    + '<div class="lbl" style="margin-top:12px">当選種別</div>'
+    + '<input id="w_t" list="dl_t" value="'+esc(w.winType)+'" placeholder="BIG、AT など">' + dl('dl_t', pastValues('winType'))
+    + '<div class="lbl" style="margin-top:12px">当選契機</div>'
+    + '<input id="w_k" list="dl_k" value="'+esc(w.trigger)+'" placeholder="弱チェリー、単独 など">' + dl('dl_k', pastValues('trigger'))
+    + '<div class="lbl" style="margin-top:12px">メモ</div><input id="w_n" value="'+esc(w.note)+'">'
+    + '<button class="btn btn-primary" style="margin-top:16px" onclick="saveWin(\''+id+'\')">保存する</button>'
+    + '<button class="btn btn-danger" style="margin-top:9px" onclick="delWinRec(\''+id+'\')">この記録を削除</button>'
+    + '<button class="btn" style="margin-top:9px" onclick="closeSheet()">閉じる</button></div></div>';
+  var d = document.createElement('div'); d.id = 'sheet'; d.innerHTML = h;
+  document.body.appendChild(d);
+}
+function closeSheet(){ var e = document.getElementById('sheet'); if(e) e.remove(); }
+function saveWin(id){
+  var s = session(V.sessionId);
+  var w = s.wins.filter(function(x){return x.id===id})[0];
+  w.games = parseInt(document.getElementById('w_g').value,10) || 0;
+  w.winType = document.getElementById('w_t').value.trim();
+  w.trigger = document.getElementById('w_k').value.trim();
+  w.note = document.getElementById('w_n').value;
+  save(); closeSheet(); render();
+}
+function delWinRec(id){
+  var s = session(V.sessionId);
+  s.wins = s.wins.filter(function(w){ return w.id !== id; });
+  save(); closeSheet(); render();
+}
+
+/* ---------- session actions ---------- */
+function showMemo(){
+  var s = session(V.sessionId);
+  var v = prompt('メモ', s.memo || '');
+  if(v === null) return;
+  s.memo = v; save(); toast('メモを保存しました');
+}
+function clearSession(){
+  if(!confirm('この実戦のカウントと当選記録をすべて消しますか。元に戻せません。')) return;
+  var s = session(V.sessionId);
+  s.counts = {}; s.hintCounts = {}; s.wins = []; s.stateGames = {}; s.currentGames = s.startGames;
+  UNDO = []; save(); render();
+}
+function endSession(){
+  if(!confirm('保存して終了しますか。')) return;
+  var s = session(V.sessionId);
+  s.endedAt = Date.now(); save();
+  lockScreen(false);
+  go('home');
+}
+
+/* ---------- history ---------- */
+function viewHistory(){
+  var done = DB.sessions.slice().sort(function(a,b){
+    return (b.date||'').localeCompare(a.date||'') || (b.startedAt - a.startedAt);
+  });
+  var h = '<div class="bar"><button class="iconbtn" onclick="go(\'home\')" aria-label="戻る">←</button><h1>履歴</h1></div><div class="wrap">';
+  if(!done.length){
+    h += '<div class="empty">まだ実戦の記録がありません。</div></div>';
+    return h;
+  }
+  h += '<div class="list">';
+  done.forEach(function(s){
+    var p = profile(s.profileId);
+    h += '<button class="item" onclick="go(\'detail\',{sessionId:\''+s.id+'\'})"><div style="flex:1">'
+      + '<div style="font-weight:600">'+esc(p ? p.name : '(削除された機種)')+(s.endedAt ? '' : ' <span class="badge">記録中</span>')+'</div>'
+      + '<div class="m">'+esc(seatLabel(s))+'</div>'
+      + '<div class="m">'+fmt(totalGames(s))+'G ・ 当選'+s.wins.length+'回</div>'
+      + '</div></button>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+function viewDetail(){
+  var s = session(V.sessionId);
+  if(!s) return viewHistory();
+  var p = profile(s.profileId);
+  if(!p) return viewHistory();
+  var h = '<div class="bar"><button class="iconbtn" onclick="go(\'history\')" aria-label="戻る">←</button><h1>'+esc(p.name)+'</h1></div><div class="wrap">';
+  h += '<div class="card"><div class="hint" style="margin:0">'+esc(seatLabel(s) || '—')+'</div>'
+    + '<div class="target" style="text-align:left">対象ゲーム数<b class="num">'+fmt(totalGames(s))+'</b></div>'
+    + (s.memo ? '<div class="hint">'+esc(s.memo)+'</div>' : '') + '</div>';
+
+  h += '<div class="sec">小役</div><div class="list">';
+  p.symbols.forEach(function(sym){
+    var c = countOf(s, sym.id, 'ALL');
+    h += '<div class="item"><span style="width:12px;height:12px;border-radius:4px;background:'+sym.color+';flex:none"></span>'
+      + '<span style="flex:1">'+esc(sym.name)+'</span>'
+      + '<span class="num" style="font-weight:600">'+c+'</span>'
+      + '<span class="m num" style="flex:none;text-align:right;min-width:62px">'+(sym.showRate!==false ? rateText(totalGames(s), c) : '—')+'</span></div>';
+  });
+  h += '</div>';
+
+  p.states.forEach(function(st){
+    var any = p.symbols.some(function(sym){ return s.counts[sym.id+':'+st.id]; });
+    if(!any) return;
+    var g = s.stateGames[st.id] || 0;
+    h += '<div class="sec">'+esc(st.name)+(st.hasGames ? ' ・ '+fmt(g)+'G' : '')+'</div><div class="list">';
+    p.symbols.forEach(function(sym){
+      var c = s.counts[sym.id+':'+st.id] || 0;
+      if(!c) return;
+      h += '<div class="item"><span style="flex:1">'+esc(sym.name)+'</span>'
+        + '<span class="num" style="font-weight:600">'+c+'</span>'
+        + '<span class="m num" style="flex:none;text-align:right;min-width:62px">'+(st.hasGames && sym.showRate!==false ? rateText(g,c) : '—')+'</span></div>';
+    });
+    h += '</div>';
+  });
+
+  (p.hints||[]).forEach(function(g){
+    var hit = g.items.filter(function(it){ return s.hintCounts[it.id]; });
+    if(!hit.length) return;
+    h += '<div class="sec">'+esc(g.name)+'</div><div class="list">';
+    hit.forEach(function(it){
+      h += '<div class="item"><span style="flex:1">'+esc(it.name)+'</span>'
+        + '<span class="num" style="font-weight:600">'+s.hintCounts[it.id]+'</span></div>';
+    });
+    h += '</div>';
+  });
+
+  h += '<div class="sec">当選履歴</div>';
+  if(!s.wins.length){ h += '<div class="empty">記録なし</div>'; }
+  else {
+    h += '<div class="list">';
+    s.wins.slice().sort(function(a,b){ return a.games-b.games; }).forEach(function(w){
+      h += '<div class="item"><span class="g num">'+fmt(w.games)+'G</span>'
+        + '<span class="m">'+esc(winLabel(w))+'</span></div>';
+    });
+    h += '</div>';
+  }
+  h += '<button class="btn btn-danger" style="margin-top:16px" onclick="delSession(\''+s.id+'\')">この記録を削除</button></div>';
+  return h;
+}
+function delSession(id){
+  if(!confirm('この実戦記録を削除しますか。')) return;
+  DB.sessions = DB.sessions.filter(function(s){ return s.id !== id; });
+  save(); go('history');
+}
+
+/* ---------- data ---------- */
+function viewData(){
+  var h = '<div class="bar"><button class="iconbtn" onclick="go(\'home\')" aria-label="戻る">←</button><h1>データ</h1></div><div class="wrap">';
+  h += '<div class="hint" style="margin-top:0">記録はこの端末のブラウザに保存されます。ブラウザのデータを削除すると消えるため、ときどき書き出して控えを取ってください。</div>'
+    + '<button class="btn btn-primary" style="margin-top:14px" onclick="exportData()">ファイルに書き出す</button>'
+    + '<button class="btn" style="margin-top:9px" onclick="document.getElementById(\'imp\').click()">ファイルから読み込む</button>'
+    + '<input type="file" id="imp" accept="application/json" style="display:none" onchange="importData(this)">'
+    + '<div class="hint">読み込むと現在の記録は置き換わります。</div>'
+    + '<div class="sec">今の記録</div>'
+    + '<div class="list"><div class="item"><span style="flex:1">機種</span><span class="num">'+DB.profiles.length+'</span></div>'
+    + '<div class="item"><span style="flex:1">実戦</span><span class="num">'+DB.sessions.length+'</span></div></div>';
+  h += '</div>';
+  return h;
+}
+function exportData(){
+  var blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  var d = new Date(), pad = function(n){ return ('0'+n).slice(-2); };
+  var name = 'koyaku-' + d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '.json';
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  toast('書き出しました');
+}
+function importData(input){
+  var f = input.files[0];
+  if(!f) return;
+  var r = new FileReader();
+  r.onload = function(){
+    try {
+      var d = JSON.parse(r.result);
+      if(!d.profiles || !d.sessions) throw 0;
+      if(!confirm('現在の記録を置き換えます。よろしいですか。')) return;
+      DB = d; save(); go('home'); toast('読み込みました');
+    } catch(e){ alert('このファイルは読み込めません。'); }
+  };
+  r.readAsText(f);
+}
+
+render();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
