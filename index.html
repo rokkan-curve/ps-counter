@@ -502,7 +502,7 @@ function doStart(profileId){
     stateGames:{}, counts:{}, hintCounts:{}, wins:[], memo:''};
   DB.sessions.push(s); save();
   UNDO = []; closeSheet();
-  go('session', {sessionId:s.id, tab:'count', stateId:p.states[0].id});
+  go('session', {sessionId:s.id, tab:'count', stateId:p.states[0].id, from:'home'});
 }
 function editInfo(){
   var s = session(V.sessionId);
@@ -521,21 +521,29 @@ function saveInfo(){
 function resume(id){
   var s = session(id), p = profile(s.profileId);
   UNDO = [];
-  go('session', {sessionId:id, tab:'count', stateId:p.states[0].id});
+  go('session', {sessionId:id, tab:'count', stateId:p.states[0].id, from:'home'});
+}
+function editSession(id){
+  var s = session(id), p = profile(s.profileId);
+  if(!p){ alert('この記録の機種が削除されています。'); return; }
+  UNDO = [];
+  go('session', {sessionId:id, tab:'count', stateId:p.states[0].id, from:'detail'});
 }
 
 function viewSession(){
   var s = session(V.sessionId);
   if(!s) return viewHome();
   var p = profile(s.profileId);
+  var back = V.from === 'detail' ? 'detail' : 'home';
+  var editing = !!s.endedAt;
   var sub = seatLabel(s);
-  var h = '<div class="bar"><button class="iconbtn" onclick="go(\'home\')" aria-label="戻る">←</button>'
-    + '<h1>'+esc(p.name)+(sub ? '<span class="sub">'+esc(sub)+'</span>' : '')+'</h1></div>'
+  var h = '<div class="bar"><button class="iconbtn" onclick="go(\''+back+'\')" aria-label="戻る">←</button>'
+    + '<h1>'+esc(p.name)+(sub ? '<span class="sub">'+esc(sub)+(editing?'　修正中':'')+'</span>' : '')+'</h1></div>'
     + '<div class="acts">'
       + '<button onclick="editInfo()"><span class="ic">🎰</span>台情報</button>'
       + '<button onclick="showMemo()"><span class="ic">✎</span>メモ</button>'
       + '<button onclick="clearSession()"><span class="ic">⌫</span>クリア</button>'
-      + '<button onclick="endSession()"><span class="ic">⏻</span>保存して終了</button>'
+      + '<button onclick="endSession()"><span class="ic">⏻</span>'+(editing?'修正を終える':'保存して終了')+'</button>'
     + '</div>'
     + '<div class="tabs">'
       + '<button class="'+(V.tab==='count'?'on':'')+'" onclick="go(\'session\',{tab:\'count\'})">カウント</button>'
@@ -831,8 +839,14 @@ function clearSession(){
   UNDO = []; save(); render();
 }
 function endSession(){
-  if(!confirm('保存して終了しますか。')) return;
   var s = session(V.sessionId);
+  if(s.endedAt){
+    lockScreen(false);
+    go(V.from === 'detail' ? 'detail' : 'home');
+    toast('修正を保存しました');
+    return;
+  }
+  if(!confirm('保存して終了しますか。')) return;
   s.endedAt = Date.now(); save();
   lockScreen(false);
   go('home');
@@ -918,7 +932,9 @@ function viewDetail(){
     });
     h += '</div>';
   }
-  h += '<button class="btn btn-danger" style="margin-top:16px" onclick="delSession(\''+s.id+'\')">この記録を削除</button></div>';
+  h += '<button class="btn btn-primary" style="margin-top:16px" onclick="editSession(\''+s.id+'\')">この記録を修正する</button>'
+    + '<div class="hint">カウント画面が開き、小役・ゲーム数・当選記録・設定画面をすべて直せます。</div>'
+    + '<button class="btn btn-danger" style="margin-top:12px" onclick="delSession(\''+s.id+'\')">この記録を削除</button></div>';
   return h;
 }
 function delSession(id){
