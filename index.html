@@ -746,28 +746,34 @@ function adjState(d){
 /* ---------- wins ---------- */
 function paneWins(s,p){
   var h = '<div class="wrap">'
-    + '<button class="btn btn-primary" onclick="addWinNow()">'+fmt(s.currentGames)+'G で当選を記録</button>'
-    + '<div class="hint">種別と契機は空のまま記録されます。あとから各行をタップして埋められます。</div>';
+    + '<button class="btn btn-primary" onclick="winSheet(\'\')">当選を記録する</button>'
+    + '<div class="hint">G数・種別・契機・メモを入力します。空欄のままでも保存でき、あとから各行をタップして直せます。</div>';
   h += '<div class="sec">当選履歴</div>';
   if(!s.wins.length){
     h += '<div class="empty">まだ記録がありません。</div>';
   } else {
     h += '<div class="list">';
-    s.wins.slice().sort(function(a,b){ return a.games - b.games; }).forEach(function(w){
-      var need = !w.winType && !w.trigger;
-      h += '<button class="item" onclick="editWin(\''+w.id+'\')">'
-        + '<span class="g num">'+fmt(w.games)+'G</span>'
-        + '<span class="m">'+esc(winLabel(w))+'</span>'
-        + (need ? '<span class="badge">未入力</span>' : '') + '</button>';
+    s.wins.forEach(function(w,i){
+      h += '<div class="item" style="padding:10px 12px;gap:6px">'
+        + '<button style="flex:1;min-width:0;text-align:left;display:flex;align-items:center;gap:10px" onclick="winSheet(\''+w.id+'\')">'
+        + '<span class="g num">'+(w.games ? fmt(w.games)+'G' : '—')+'</span>'
+        + '<span class="m" style="white-space:normal">'+esc(winLabel(w))+'</span></button>'
+        + '<button class="iconbtn" style="width:30px" onclick="moveWin(\''+w.id+'\',-1)" '+(i===0?'disabled style="opacity:.25;width:30px"':'')+' aria-label="上へ">▲</button>'
+        + '<button class="iconbtn" style="width:30px" onclick="moveWin(\''+w.id+'\',1)" '+(i===s.wins.length-1?'disabled style="opacity:.25;width:30px"':'')+' aria-label="下へ">▼</button>'
+        + '</div>';
     });
     h += '</div>';
+    h += '<div class="hint">行をタップすると内容を直せます。▲▼で順番を入れ替えられます。</div>';
   }
   h += '</div>';
   return h;
 }
 function winLabel(w){
-  var a = w.winType || '種別なし', b = w.trigger || '契機なし';
-  return a + ' / ' + b;
+  var a = [];
+  if(w.winType) a.push(w.winType);
+  if(w.trigger) a.push(w.trigger);
+  if(w.note) a.push(w.note);
+  return a.length ? a.join(' ・ ') : '未入力';
 }
 function pastValues(field){
   var s = session(V.sessionId), out = [];
@@ -780,44 +786,58 @@ function pastValues(field){
   });
   return out;
 }
-function addWinNow(){
+function winSheet(id){
   var s = session(V.sessionId);
-  var w = {id:uid(), games:s.currentGames, winType:'', trigger:'', note:''};
-  s.wins.push(w); UNDO.push({t:'win', id:w.id});
-  save(); render();
-  toast(fmt(w.games) + 'G で記録しました');
-}
-function editWin(id){
-  var s = session(V.sessionId);
-  var w = s.wins.filter(function(x){return x.id===id})[0];
+  var w = id ? s.wins.filter(function(x){return x.id===id})[0]
+             : {games:'', winType:'', trigger:'', note:''};
   var dl = function(listId, vals){
     var o = '<datalist id="'+listId+'">';
     vals.forEach(function(v){ o += '<option value="'+esc(v)+'">'; });
     return o + '</datalist>';
   };
   var h = '<div class="sheet" onclick="if(event.target===this)closeSheet()"><div>'
-    + '<h2>当選の内容</h2>'
-    + '<div class="lbl">ゲーム数</div><input class="num" type="number" inputmode="numeric" id="w_g" value="'+w.games+'">'
+    + '<h2>'+(id ? '当選の内容' : '当選を記録')+'</h2>'
+    + '<div class="lbl">ゲーム数</div>'
+    + '<input class="num" type="number" inputmode="numeric" id="w_g" value="'+(w.games || '')+'" placeholder="例: 1080">'
     + '<div class="lbl" style="margin-top:12px">当選種別</div>'
-    + '<input id="w_t" list="dl_t" value="'+esc(w.winType)+'" placeholder="BIG、AT など">' + dl('dl_t', pastValues('winType'))
+    + '<input id="w_t" list="dl_t" value="'+esc(w.winType)+'" placeholder="AT、ボーナス など">' + dl('dl_t', pastValues('winType'))
     + '<div class="lbl" style="margin-top:12px">当選契機</div>'
-    + '<input id="w_k" list="dl_k" value="'+esc(w.trigger)+'" placeholder="弱チェリー、単独 など">' + dl('dl_k', pastValues('trigger'))
-    + '<div class="lbl" style="margin-top:12px">メモ</div><input id="w_n" value="'+esc(w.note)+'">'
-    + '<button class="btn btn-primary" style="margin-top:16px" onclick="saveWin(\''+id+'\')">保存する</button>'
-    + '<button class="btn btn-danger" style="margin-top:9px" onclick="delWinRec(\''+id+'\')">この記録を削除</button>'
+    + '<input id="w_k" list="dl_k" value="'+esc(w.trigger)+'" placeholder="1周期、乙女アタック など">' + dl('dl_k', pastValues('trigger'))
+    + '<div class="lbl" style="margin-top:12px">メモ</div>'
+    + '<input id="w_n" value="'+esc(w.note)+'" placeholder="紫炎、ストラップ(ゴエモン) など">'
+    + '<button class="btn btn-primary" style="margin-top:16px" onclick="saveWin(\''+(id||'')+'\')">保存する</button>'
+    + (id ? '<button class="btn btn-danger" style="margin-top:9px" onclick="delWinRec(\''+id+'\')">この記録を削除</button>' : '')
     + '<button class="btn" style="margin-top:9px" onclick="closeSheet()">閉じる</button></div></div>';
-  var d = document.createElement('div'); d.id = 'sheet'; d.innerHTML = h;
-  document.body.appendChild(d);
+  openSheet(h);
+  setTimeout(function(){ var e = document.getElementById('w_g'); if(e && !id) e.focus(); }, 60);
 }
 function closeSheet(){ var e = document.getElementById('sheet'); if(e) e.remove(); }
 function saveWin(id){
   var s = session(V.sessionId);
-  var w = s.wins.filter(function(x){return x.id===id})[0];
-  w.games = parseInt(document.getElementById('w_g').value,10) || 0;
-  w.winType = document.getElementById('w_t').value.trim();
-  w.trigger = document.getElementById('w_k').value.trim();
-  w.note = document.getElementById('w_n').value;
+  var g = document.getElementById('w_g').value.trim();
+  var vals = {
+    games: g === '' ? null : Math.max(0, parseInt(g,10) || 0),
+    winType: document.getElementById('w_t').value.trim(),
+    trigger: document.getElementById('w_k').value.trim(),
+    note: document.getElementById('w_n').value.trim()
+  };
+  if(id){
+    var w = s.wins.filter(function(x){return x.id===id})[0];
+    w.games = vals.games; w.winType = vals.winType; w.trigger = vals.trigger; w.note = vals.note;
+  } else {
+    var nw = {id:uid(), games:vals.games, winType:vals.winType, trigger:vals.trigger, note:vals.note};
+    s.wins.push(nw);
+    UNDO.push({t:'win', id:nw.id});
+  }
   save(); closeSheet(); render();
+}
+function moveWin(id, d){
+  var s = session(V.sessionId);
+  var i = s.wins.findIndex(function(w){ return w.id === id; });
+  var j = i + d;
+  if(i < 0 || j < 0 || j >= s.wins.length) return;
+  var t = s.wins[i]; s.wins[i] = s.wins[j]; s.wins[j] = t;
+  save(); render();
 }
 function delWinRec(id){
   var s = session(V.sessionId);
@@ -926,8 +946,8 @@ function viewDetail(){
   if(!s.wins.length){ h += '<div class="empty">記録なし</div>'; }
   else {
     h += '<div class="list">';
-    s.wins.slice().sort(function(a,b){ return a.games-b.games; }).forEach(function(w){
-      h += '<div class="item"><span class="g num">'+fmt(w.games)+'G</span>'
+    s.wins.forEach(function(w){
+      h += '<div class="item"><span class="g num">'+(w.games ? fmt(w.games)+'G' : '—')+'</span>'
         + '<span class="m">'+esc(winLabel(w))+'</span></div>';
     });
     h += '</div>';
